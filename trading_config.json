@@ -1,0 +1,27 @@
+{
+  "symbols": [
+    "AAPL", "GOOGL", "MSFT", "TSLA", "NVDA", 
+    "AMZN", "META", "NFLX", "AMD", "CRM"
+  ],
+  "market_data": {
+    "update_interval": 15,
+    "api_key": "FGPMEXHAEYSHJGQI",
+    "min_request_interval": 1.0
+  },
+  "rsi": {
+    "rsi_period": 14,
+    "oversold_threshold": 30,
+    "overbought_threshold": 70,
+    "extreme_oversold": 20,
+    "extreme_overbought": 80,
+    "signal_confirmation_periods": 2
+  },
+  "cache": {
+    "max_prices": 200,
+    "max_volumes": 50
+  },
+  "logging": {
+    "level": "INFO",
+    "file": "trading_system.log"
+  }
+}
