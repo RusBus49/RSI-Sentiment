@@ -1,12 +1,20 @@
 {
+  "simulation_mode": false,
   "symbols": [
     "AAPL", "GOOGL", "MSFT", "TSLA", "NVDA", 
     "AMZN", "META", "NFLX", "AMD", "CRM"
   ],
   "market_data": {
-    "update_interval": 15,
-    "api_key": "FGPMEXHAEYSHJGQI",
-    "min_request_interval": 1.0
+    "update_interval": 75,
+    "source": "yahoo_finance",
+    "min_request_interval": 1.5,
+    "rate_limits": {
+      "requests_per_minute": 50,
+      "requests_per_hour": 300,
+      "requests_per_day": 7000
+    },
+    "timeout_seconds": 15,
+    "retry_attempts": 3
   },
   "rsi": {
     "rsi_period": 14,
@@ -14,14 +22,37 @@
     "overbought_threshold": 70,
     "extreme_oversold": 20,
     "extreme_overbought": 80,
-    "signal_confirmation_periods": 2
+    "signal_confirmation_periods": 2,
+    "min_signal_strength": 0.3,
+    "volume_confirmation": true,
+    "min_volume_threshold": 100000
   },
   "cache": {
     "max_prices": 200,
-    "max_volumes": 50
+    "max_volumes": 50,
+    "rsi_buffer_multiplier": 2
+  },
+  "system": {
+    "market_hours_only": true,
+    "user_timezone": "US/Pacific",
+    "market_timezone": "US/Eastern", 
+    "market_open_time": "09:30",
+    "market_close_time": "16:00",
+    "user_market_open_time": "06:30",
+    "user_market_close_time": "13:00",
+    "trading_days": ["monday", "tuesday", "wednesday", "thursday", "friday"]
   },
   "logging": {
     "level": "INFO",
-    "file": "trading_system.log"
+    "file": "trading_system.log",
+    "console": true,
+    "max_file_size_mb": 10,
+    "backup_count": 5
+  },
+  "monitoring": {
+    "stats_interval_seconds": 180,
+    "health_check_interval_seconds": 60,
+    "alert_on_consecutive_failures": 10,
+    "memory_limit_mb": 512
   }
 }
