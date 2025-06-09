@@ -15,7 +15,7 @@ class MarketDataFeed:
         self.is_running = False
         self.symbols = config.get('symbols', [])
         self.update_interval = config.get('update_interval', 5)  # seconds
-        self.api_key = config.get('api_key', '')
+        self.api_key = config.get('api_key', 'FGPMEXHAEYSHJGQI')
         self.logger = logging.getLogger(__name__)
         
         # Rate limiting
@@ -178,7 +178,7 @@ async def main():
     config = {
         'symbols': ['AAPL', 'GOOGL', 'MSFT', 'TSLA'],
         'update_interval': 10,
-        'api_key': ''  # Add your Alpha Vantage API key here
+        'api_key': 'FGPMEXHAEYSHJGQI'  # Add your Alpha Vantage API key here
     }
     
     # Set up logging

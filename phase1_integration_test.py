@@ -260,7 +260,7 @@ def create_default_config(filename: str = "trading_config.json"):
         "symbols": ["AAPL", "GOOGL", "MSFT", "TSLA", "NVDA", "AMZN", "META", "NFLX"],
         "market_data": {
             "update_interval": 15,
-            "api_key": "YOUR_ALPHA_VANTAGE_API_KEY_HERE"
+            "api_key": "FGPMEXHAEYSHJGQI"
         },
         "rsi": {
             "rsi_period": 14,
