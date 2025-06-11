@@ -1,0 +1,33 @@
+# Core async libraries
+asyncio-mqtt>=0.16.1
+aiohttp>=3.8.5
+aiofiles>=23.1.0
+websockets>=11.0.3
+
+# Data processing
+numpy>=1.24.3
+pandas>=2.0.3
+
+# System monitoring
+psutil>=5.9.5
+
+# Timezone handling
+pytz>=2023.3
+
+# For REST API
+aiohttp-cors>=0.7.0
+
+# Optional for Jetson Nano GPU monitoring
+# GPUtil>=1.4.0  # Uncomment if GPU monitoring needed
+
+# For better logging
+colorlog>=6.7.0
+
+# JSON handling
+orjson>=3.9.5  # Faster JSON parsing
+
+# For configuration validation
+pydantic>=2.4.2
+
+# Rate limiting
+aiolimiter>=1.1.0

@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RSI-Sentiment Trading Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0a0a0a;
+            color: #e0e0e0;
+            line-height: 1.6;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #1a1a2e 0%, #0f0f1e 100%);
+            padding: 1rem 2rem;
+            border-bottom: 2px solid #00ff88;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .header h1 {
+            font-size: 1.5rem;
+            color: #00ff88;
+        }
+        
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #ff4444;
+            animation: pulse 2s infinite;
+        }
+        
+        .status-dot.connected {
+            background: #00ff88;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
+        .container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1rem;
+            padding: 1rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .card {
+            background: #1a1a2e;
+            border: 1px solid #2a2a3e;
+            border-radius: 8px;
+            padding: 1.5rem;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 255, 136, 0.1);
+        }
+        
+        .card h2 {
+            color: #00ff88;
+            font-size: 1.1rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            margin: 0.5rem 0;
+            padding: 0.5rem;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 4px;
+        }
+        
+        .metric-label {
+            color: #888;
+            font-size: 0.9rem;
+        }
+        
+        .metric-value {
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+        
+        .positive { color: #00ff88; }
+        .negative { color: #ff4444; }
+        .neutral { color: #ffa500; }
+        
+        .positions-table {
+            width: 100%;
+            margin-top: 1rem;
+        }
+        
+        .positions-table th {
+            text-align: left;
+            padding: 0.5rem;
+            border-bottom: 1px solid #2a2a3e;
+            color: #00ff88;
+            font-size: 0.9rem;
+        }
+        
+        .positions-table td {
+            padding: 0.5rem;
+            border-bottom: 1px solid #1a1a2e;
+            font-size: 0.9rem;
+        }
+        
+        .signal-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .signal-item {
+            padding: 0.75rem;
+            margin: 0.5rem 0;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 4px;
+            border-left: 3px solid #ffa500;
+        }
+        
+        .signal-item.long {
+            border-left-color: #00ff88;
+        }
+        
+        .signal-item.short {
+            border-left-color: #ff4444;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+        
+        .btn-primary {
+            background: #00ff88;
+            color: #0a0a0a;
+        }
+        
+        .btn-danger {
+            background: #ff4444;
+            color: white;
+        }
+        
+        .btn:hover {
+            transform: scale(1.05);
+        }
+        
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        #chartContainer {
+            height: 300px;
+            margin-top: 1rem;
+        }
+        
+        .log-container {
+            background: #000;
+            padding: 1rem;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .log-entry {
+            margin: 0.25rem 0;
+            opacity: 0.8;
+        }
+        
+        .log-entry.error { color: #ff4444; }
+        .log-entry.warning { color: #ffa500; }
+        .log-entry.info { color: #00ff88; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🚀 RSI-Sentiment Trading System</h1>
+        <div class="status-indicator">
+            <span id="connectionStatus">Disconnected</span>
+            <div id="statusDot" class="status-dot"></div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- System Metrics -->
+        <div class="card">
+            <h2>📊 System Metrics</h2>
+            <div class="metric">
+                <span class="metric-label">Status</span>
+                <span id="systemState" class="metric-value neutral">INITIALIZING</span>
+            </div>
+            <div class="metric">
+                <span class="metric-label">Uptime</span>
+                <span id="uptime" class="metric-value">0h 0m</span>
+            </div>
+            <div class="metric">
+                <span class="metric-label">CPU Usage</span>
+                <span id="cpuUsage" class="metric-value">0%</span>
+            </div>
+            <div class="metric">
+                <span class="metric-label">Memory</span>
+                <span id="memoryUsage" class="metric-value">0 MB</span>
+            </div>
+            <div class="metric">
+                <span class="metric-label">GPU Usage</span>
+                <span id="gpuUsage" class="metric-value">0%</span>
+            </div>
+        </div>
+
+        <!-- Portfolio Summary -->
+        <div class="card">
+            <h2>💰 Portfolio</h2>
+            <div class="metric">
+                <span class="metric-label">Total Value</span>
+                <span id="portfolioValue" class="metric-value">$0</span>
+            </div>
+            <div class="metric">
+                <span class="metric-label">Daily P&L</span>
+                <span id="dailyPnl" class="metric-value">$0</span>
+            </div>
+            <div class="metric">
+                <span class="metric-label">Total P&L</span>
+                <span id="totalPnl" class="metric-value">$0</span>
+            </div>
+            <div class="metric">
+                <span class="metric-label">Win Rate</span>
+                <span id="winRate" class="metric-value">0%</span>
+            </div>
+            <div class="metric">
+                <span class="metric-label">Active Positions</span>
+                <span id="activePositions" class="metric-value">0</span>
+            </div>
+        </div>
+
+        <!-- Trading Activity -->
+        <div class="card">
+            <h2>📈 Trading Activity</h2>
+            <div class="metric">
+                <span class="metric-label">Total Signals</span>
+                <span id="totalSignals" class="metric-value">0</span>
+            </div>
+            <div class="metric">
+                <span class="metric-label">Market Status</span>
+                <span id="marketStatus" class="metric-value">CLOSED</span>
+            </div>
+            <div class="controls">
+                <button id="pauseBtn" class="btn btn-primary">Pause</button>
+                <button id="resumeBtn" class="btn btn-primary" disabled>Resume</button>
+                <button id="stopBtn" class="btn btn-danger">Stop</button>
+            </div>
+        </div>
+
+        <!-- Recent Signals -->
+        <div class="card">
+            <h2>🚨 Recent Signals</h2>
+            <div id="signalsList" class="signal-list">
+                <div class="signal-item neutral">
+                    <div>Waiting for signals...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Positions -->
+        <div class="card" style="grid-column: span 2;">
+            <h2>📋 Current Positions</h2>
+            <table class="positions-table">
+                <thead>
+                    <tr>
+                        <th>Symbol</th>
+                        <th>Type</th>
+                        <th>Size</th>
+                        <th>Value</th>
+                        <th>P&L</th>
+                        <th>P&L %</th>
+                    </tr>
+                </thead>
+                <tbody id="positionsTableBody">
+                    <tr>
+                        <td colspan="6" style="text-align: center; color: #666;">No positions</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- System Logs -->
+        <div class="card" style="grid-column: span 2;">
+            <h2>📜 System Logs</h2>
+            <div id="logContainer" class="log-container">
+                <div class="log-entry info">System initializing...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // WebSocket connection
+        let ws = null;
+        let reconnectInterval = null;
+        
+        // DOM elements
+        const connectionStatus = document.getElementById('connectionStatus');
+        const statusDot = document.getElementById('statusDot');
+        const logContainer = document.getElementById('logContainer');
+        
+        // Connect to WebSocket
+        function connect() {
+            ws = new WebSocket('ws://localhost:8765');
+            
+            ws.onopen = () => {
+                connectionStatus.textContent = 'Connected';
+                statusDot.classList.add('connected');
+                addLog('Connected to trading system', 'info');
+                
+                if (reconnectInterval) {
+                    clearInterval(reconnectInterval);
+                    reconnectInterval = null;
+                }
+            };
+            
+            ws.onclose = () => {
+                connectionStatus.textContent = 'Disconnected';
+                statusDot.classList.remove('connected');
+                addLog('Disconnected from trading system', 'error');
+                
+                // Attempt to reconnect
+                if (!reconnectInterval) {
+                    reconnectInterval = setInterval(connect, 5000);
+                }
+            };
+            
+            ws.onerror = (error) => {
+                addLog('WebSocket error', 'error');
+            };
+            
+            ws.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    handleMessage(data);
+                } catch (e) {
+                    console.error('Failed to parse message:', e);
+                }
+            };
+        }
+        
+        // Handle incoming messages
+        function handleMessage(message) {
+            switch (message.type) {
+                case 'metrics':
+                    updateMetrics(message.data);
+                    break;
+                case 'portfolio':
+                    updatePortfolio(message.data);
+                    break;
+                case 'signal':
+                    addSignal(message.data);
+                    break;
+                case 'price':
+                    // Handle price updates
+                    break;
+                case 'order_update':
+                    addLog(`Order ${message.data.symbol}: ${message.data.status}`, 'info');
+                    break;
+                case 'alert':
+                    addLog(message.data.message, 'warning');
+                    break;
+            }
+        }
+        
+        // Update system metrics
+        function updateMetrics(data) {
+            document.getElementById('systemState').textContent = data.state.toUpperCase();
+            document.getElementById('uptime').textContent = formatUptime(data.uptime_seconds);
+            document.getElementById('cpuUsage').textContent = data.cpu_usage.toFixed(1) + '%';
+            document.getElementById('memoryUsage').textContent = data.memory_usage_mb.toFixed(0) + ' MB';
+            document.getElementById('gpuUsage').textContent = data.gpu_usage.toFixed(1) + '%';
+            document.getElementById('totalSignals').textContent = data.total_signals;
+            document.getElementById('marketStatus').textContent = data.market_open ? 'OPEN' : 'CLOSED';
+            
+            // Update system state color
+            const stateElement = document.getElementById('systemState');
+            stateElement.className = 'metric-value';
+            if (data.state === 'running') {
+                stateElement.classList.add('positive');
+            } else if (data.state === 'error') {
+                stateElement.classList.add('negative');
+            } else {
+                stateElement.classList.add('neutral');
+            }
+        }
+        
+        // Update portfolio data
+        function updatePortfolio(data) {
+            document.getElementById('portfolioValue').textContent = '$' + formatNumber(data.total_value);
+            document.getElementById('activePositions').textContent = data.positions.length;
+            
+            // Update P&L with colors
+            updatePnL('dailyPnl', data.daily_pnl);
+            updatePnL('totalPnl', data.total_pnl || 0);
+            
+            // Update positions table
+            updatePositionsTable(data.positions);
+        }
+        
+        // Update P&L display
+        function updatePnL(elementId, value) {
+            const element = document.getElementById(elementId);
+            element.textContent = '$' + formatNumber(Math.abs(value));
+            element.className = 'metric-value';
+            element.classList.add(value >= 0 ? 'positive' : 'negative');
+        }
+        
+        // Update positions table
+        function updatePositionsTable(positions) {
+            const tbody = document.getElementById('positionsTableBody');
+            
+            if (positions.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #666;">No positions</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = positions.map(pos => `
+                <tr>
+                    <td>${pos.symbol}</td>
+                    <td class="${pos.type === 'long' ? 'positive' : 'negative'}">${pos.type.toUpperCase()}</td>
+                    <td>${Math.abs(pos.size).toFixed(0)}</td>
+                    <td>$${formatNumber(pos.value)}</td>
+                    <td class="${pos.pnl >= 0 ? 'positive' : 'negative'}">$${formatNumber(Math.abs(pos.pnl))}</td>
+                    <td class="${pos.pnl >= 0 ? 'positive' : 'negative'}">${((pos.pnl / pos.value) * 100).toFixed(2)}%</td>
+                </tr>
+            `).join('');
+        }
+        
+        // Add signal to list
+        function addSignal(signal) {
+            const signalsList = document.getElementById('signalsList');
+            const signalClass = signal.signal_type.includes('long') ? 'long' : 'short';
+            
+            const signalHtml = `
+                <div class="signal-item ${signalClass}">
+                    <div><strong>${signal.symbol}</strong> - ${signal.signal_type.toUpperCase()}</div>
+                    <div style="font-size: 0.85rem; opacity: 0.8;">
+                        Strength: ${(signal.strength * 100).toFixed(0)}% | 
+                        Risk: ${(signal.risk_score * 100).toFixed(0)}%
+                    </div>
+                </div>
+            `;
+            
+            signalsList.insertAdjacentHTML('afterbegin', signalHtml);
+            
+            // Keep only last 10 signals
+            while (signalsList.children.length > 10) {
+                signalsList.removeChild(signalsList.lastChild);
+            }
+        }
+        
+        // Add log entry
+        function addLog(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logHtml = `<div class="log-entry ${type}">[${timestamp}] ${message}</div>`;
+            logContainer.insertAdjacentHTML('beforeend', logHtml);
+            logContainer.scrollTop = logContainer.scrollHeight;
+            
+            // Keep only last 50 logs
+            while (logContainer.children.length > 50) {
+                logContainer.removeChild(logContainer.firstChild);
+            }
+        }
+        
+        // Utility functions
+        function formatNumber(num) {
+            return new Intl.NumberFormat('en-US', { 
+                minimumFractionDigits: 2, 
+                maximumFractionDigits: 2 
+            }).format(num);
+        }
+        
+        function formatUptime(seconds) {
+            const hours = Math.floor(seconds / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            return `${hours}h ${minutes}m`;
+        }
+        
+        // Control buttons
+        document.getElementById('pauseBtn').addEventListener('click', () => {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ command: 'pause' }));
+                document.getElementById('pauseBtn').disabled = true;
+                document.getElementById('resumeBtn').disabled = false;
+                addLog('System paused', 'warning');
+            }
+        });
+        
+        document.getElementById('resumeBtn').addEventListener('click', () => {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ command: 'resume' }));
+                document.getElementById('pauseBtn').disabled = false;
+                document.getElementById('resumeBtn').disabled = true;
+                addLog('System resumed', 'info');
+            }
+        });
+        
+        document.getElementById('stopBtn').addEventListener('click', () => {
+            if (confirm('Are you sure you want to stop the trading system?')) {
+                if (ws && ws.readyState === WebSocket.OPEN) {
+                    ws.send(JSON.stringify({ command: 'stop' }));
+                    addLog('Stopping system...', 'warning');
+                }
+            }
+        });
+        
+        // Initialize connection
+        connect();
+        
+        // Fetch initial data via REST API
+        async function fetchInitialData() {
+            try {
+                const response = await fetch('http://localhost:8080/api/status');
+                if (response.ok) {
+                    const data = await response.json();
+                    updateMetrics(data);
+                }
+            } catch (e) {
+                console.error('Failed to fetch initial data:', e);
+            }
+        }
+        
+        // Start periodic data fetch as backup
+        setInterval(fetchInitialData, 30000); // Every 30 seconds
+        fetchInitialData();
+    </script>
+</body>
+</html>
