@@ -44,7 +44,7 @@ class Position:
     last_update: datetime
     
     # Position metadata
-    position_type: str          # "long" or "short"
+    position_type: str = "" # "long" or "short"
     status: PositionStatus = PositionStatus.OPEN
     
     # Risk management
